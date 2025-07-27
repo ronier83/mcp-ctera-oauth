@@ -3,11 +3,12 @@ import os
 from tavily_mcp import mcp as tavily_mcp_server
 
 import contextlib
-from fastapi import FastAPI, HTTPException, Depends, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.security import HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 import httpx
+from utils import validate_token
 
 ################################################################################
 # CONFIGURATION 
@@ -23,46 +24,6 @@ if not SCALEKIT_ENVIRONMENT_URL:
     raise Exception("SCALEKIT_ENVIRONMENT_URL environment variable not set")
 if not RESOURCE_IDENTIFIER:
     raise Exception("RESOURCE_IDENTIFIER environment variable not set")
-
-
-# Security scheme for Bearer token
-security = HTTPBearer()
-
-# # Token validation function
-async def validate_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
-    """
-    Validate the OAuth 2.1 access token with Scalekit authorization server
-    """
-    token = credentials.credentials
-    
-    try:
-        # In production, you should validate the token with Scalekit's introspection endpoint
-        # or verify the JWT signature if using JWT tokens
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{SCALEKIT_ENVIRONMENT_URL}/oauth/introspect",
-                data={"token": token},
-                headers={"Content-Type": "application/x-www-form-urlencoded"}
-            )
-            
-            if response.status_code != 200:
-                raise HTTPException(status_code=401, detail="Invalid token")
-            
-            token_info = response.json()
-            
-            if not token_info.get("active", False):
-                raise HTTPException(status_code=401, detail="Token is not active")
-            
-            # Verify the audience (resource identifier)
-            if token_info.get("aud") != RESOURCE_IDENTIFIER:
-                raise HTTPException(status_code=403, detail="Token not valid for this resource")
-            
-            return token_info
-            
-    except httpx.RequestError:
-        raise HTTPException(status_code=503, detail="Unable to validate token")
-    except Exception as e:
-        raise HTTPException(status_code=401, detail="Token validation failed")
 
 PORT = os.environ.get("PORT", 10000)
 
@@ -148,7 +109,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         
         return await call_next(request)
 
-# mcp_server.add_middleware(AuthMiddleware)
+mcp_server.add_middleware(AuthMiddleware)
 
 app.mount("/web-search", mcp_server)
 
