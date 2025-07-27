@@ -1,3 +1,4 @@
+import os
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import httpx
@@ -5,7 +6,11 @@ import httpx
 # Security scheme for Bearer token
 security = HTTPBearer()
 
-# # Token validation function
+# Get environment variables
+SCALEKIT_ENVIRONMENT_URL = os.environ.get("SCALEKIT_ENVIRONMENT_URL", "")
+RESOURCE_IDENTIFIER = os.environ.get("RESOURCE_IDENTIFIER", "")
+
+# Token validation function
 async def validate_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     """
     Validate the OAuth 2.1 access token with Scalekit authorization server
@@ -13,8 +18,7 @@ async def validate_token(credentials: HTTPAuthorizationCredentials = Depends(sec
     token = credentials.credentials
     
     try:
-        # In production, you should validate the token with Scalekit's introspection endpoint
-        # or verify the JWT signature if using JWT tokens
+        # Validate the token with Scalekit's introspection endpoint
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{SCALEKIT_ENVIRONMENT_URL}/oauth/introspect",
