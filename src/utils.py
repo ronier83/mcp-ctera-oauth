@@ -1,7 +1,12 @@
 import os
+import logging
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from scalekit import ScalekitClient
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # Security scheme for Bearer token
 security = HTTPBearer()
@@ -19,25 +24,62 @@ async def validate_token(credentials: HTTPAuthorizationCredentials = Depends(sec
     """
     token = credentials.credentials
     
+    # Debug: Log environment variables (mask sensitive data)
+    logger.debug(f"SCALEKIT_ENVIRONMENT_URL: {SCALEKIT_ENVIRONMENT_URL}")
+    logger.debug(f"RESOURCE_IDENTIFIER: {RESOURCE_IDENTIFIER}")
+    logger.debug(f"CLIENT_ID: {CLIENT_ID[:8]}..." if CLIENT_ID else "CLIENT_ID: None")
+    logger.debug(f"CLIENT_SECRET: {'***' if CLIENT_SECRET else 'None'}")
+    
+    # Debug: Log token info (mask most of the token for security)
+    logger.debug(f"Received token: {token[:10]}...{token[-10:]}" if len(token) > 20 else f"Received token: {token}")
+    
     try:
+        # Debug: Log client initialization attempt
+        logger.debug("Initializing Scalekit client...")
+        
         # Initialize Scalekit client
         sc = ScalekitClient(
-            SCALEKIT_ENVIRONMENT_URL,
+            "https://alejandroao.scalekit.dev",
             CLIENT_ID,
             CLIENT_SECRET
         )
         
-        # Validate the token using Scalekit SDK
-        token_info = await sc.validate_access_token(token)
+        logger.debug("Scalekit client initialized successfully")
         
-        if not token_info or not token_info.get("active", False):
+        # Debug: Log token validation attempt
+        logger.debug("Attempting to validate token with Scalekit...")
+        
+        # Validate the token using Scalekit SDK
+        token_info = sc.validate_access_token(token)
+        
+        # Debug: Log token validation response
+        logger.debug(f"Token validation response: {token_info}")
+        
+        if not token_info:
+            logger.error("Token validation returned None/empty response")
+            raise HTTPException(status_code=401, detail="Token validation returned empty response")
+        
+        if not token_info.get("active", False):
+            logger.error(f"Token is not active. Token info: {token_info}")
             raise HTTPException(status_code=401, detail="Token is not active")
         
-        # Verify the audience (resource identifier)
-        if token_info.get("aud") != RESOURCE_IDENTIFIER:
-            raise HTTPException(status_code=403, detail="Token not valid for this resource")
+        logger.debug(f"Token is active. Checking audience...")
         
+        # Verify the audience (resource identifier)
+        token_aud = token_info.get("aud")
+        logger.debug(f"Token audience: {token_aud}, Expected: {RESOURCE_IDENTIFIER}")
+        
+        if token_aud != RESOURCE_IDENTIFIER:
+            logger.error(f"Audience mismatch. Token aud: {token_aud}, Expected: {RESOURCE_IDENTIFIER}")
+            raise HTTPException(status_code=403, detail=f"Token not valid for this resource. Expected: {RESOURCE_IDENTIFIER}, Got: {token_aud}")
+        
+        logger.debug("Token validation successful")
         return token_info
         
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
     except Exception as e:
-        raise HTTPException(status_code=401, detail="Token validation failed")
+        logger.error(f"Token validation failed with exception: {type(e).__name__}: {str(e)}")
+        logger.exception("Full exception details:")
+        raise HTTPException(status_code=401, detail=f"Token validation failed: {str(e)}")
