@@ -5,7 +5,10 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from scalekit import ScalekitClient
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # Security scheme for Bearer token
@@ -17,69 +20,53 @@ RESOURCE_IDENTIFIER = os.environ.get("RESOURCE_IDENTIFIER", "")
 CLIENT_ID = os.environ.get("CLIENT_ID", "")
 CLIENT_SECRET = os.environ.get("CLIENT_SECRET", "")
 
-# Token validation function
+# Initialize ScaleKit client
+scalekit_client = ScalekitClient(
+    "https://alejandroao.scalekit.dev",
+    CLIENT_ID,
+    CLIENT_SECRET
+)
+
+# Token validation function using OAuth introspect endpoint
 async def validate_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     """
-    Validate the OAuth 2.1 access token with Scalekit authorization server
+    Validate the OAuth 2.1 access token using the ScaleKit SDK
     """
     token = credentials.credentials
     
-    # Debug: Log environment variables (mask sensitive data)
-    logger.debug(f"SCALEKIT_ENVIRONMENT_URL: {SCALEKIT_ENVIRONMENT_URL}")
-    logger.debug(f"RESOURCE_IDENTIFIER: {RESOURCE_IDENTIFIER}")
-    logger.debug(f"CLIENT_ID: {CLIENT_ID[:8]}..." if CLIENT_ID else "CLIENT_ID: None")
-    logger.debug(f"CLIENT_SECRET: {'***' if CLIENT_SECRET else 'None'}")
+    # Validate required environment variables
+    if not SCALEKIT_ENVIRONMENT_URL:
+        raise HTTPException(status_code=500, detail="Server configuration error: SCALEKIT_ENVIRONMENT_URL not set")
     
-    # Debug: Log token info (mask most of the token for security)
-    logger.debug(f"Received token: {token[:10]}...{token[-10:]}" if len(token) > 20 else f"Received token: {token}")
+    if not CLIENT_ID or not CLIENT_SECRET:
+        raise HTTPException(status_code=500, detail="Server configuration error: OAuth credentials not configured")
     
     try:
-        # Debug: Log client initialization attempt
-        logger.debug("Initializing Scalekit client...")
-        
-        # Initialize Scalekit client
-        sc = ScalekitClient(
-            "https://alejandroao.scalekit.dev",
-            CLIENT_ID,
-            CLIENT_SECRET
+        # Use ScaleKit SDK to introspect the token
+        token_info = await scalekit_client.validate_access_token(
+          token,
+          audience=RESOURCE_IDENTIFIER
         )
         
-        logger.debug("Scalekit client initialized successfully")
+        # Validate token is active
+        is_active = token_info.get("active", False)
         
-        # Debug: Log token validation attempt
-        logger.debug("Attempting to validate token with Scalekit...")
-        
-        # Validate the token using Scalekit SDK
-        token_info = sc.validate_access_token(token)
-        
-        # Debug: Log token validation response
-        logger.debug(f"Token validation response: {token_info}")
-        
-        if not token_info:
-            logger.error("Token validation returned None/empty response")
-            raise HTTPException(status_code=401, detail="Token validation returned empty response")
-        
-        if not token_info.get("active", False):
-            logger.error(f"Token is not active. Token info: {token_info}")
+        if not is_active:
             raise HTTPException(status_code=401, detail="Token is not active")
         
-        logger.debug(f"Token is active. Checking audience...")
-        
-        # Verify the audience (resource identifier)
+        # Check audience if present
         token_aud = token_info.get("aud")
-        logger.debug(f"Token audience: {token_aud}, Expected: {RESOURCE_IDENTIFIER}")
         
-        if token_aud != RESOURCE_IDENTIFIER:
-            logger.error(f"Audience mismatch. Token aud: {token_aud}, Expected: {RESOURCE_IDENTIFIER}")
-            raise HTTPException(status_code=403, detail=f"Token not valid for this resource. Expected: {RESOURCE_IDENTIFIER}, Got: {token_aud}")
+        if token_aud and token_aud != RESOURCE_IDENTIFIER:
+            raise HTTPException(
+                status_code=403, 
+                detail=f"Token not valid for this resource. Expected: {RESOURCE_IDENTIFIER}, Got: {token_aud}"
+            )
         
-        logger.debug("Token validation successful")
         return token_info
         
     except HTTPException:
         # Re-raise HTTP exceptions as-is
         raise
     except Exception as e:
-        logger.error(f"Token validation failed with exception: {type(e).__name__}: {str(e)}")
-        logger.exception("Full exception details:")
         raise HTTPException(status_code=401, detail=f"Token validation failed: {str(e)}")
