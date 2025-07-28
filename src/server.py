@@ -64,56 +64,6 @@ async def oauth_protected_resource_metadata():
         # "scopes_supported": ["web-search:read", "web-search:write"]
     }
 
-# # Proxy authorization server metadata from Scalekit
-# @app.get("/.well-known/oauth-authorization-server")
-# async def oauth_authorization_server_metadata():
-#     """
-#     Proxy the authorization server metadata from Scalekit
-#     This allows clients to discover OAuth endpoints and capabilities
-#     """
-#     try:
-#         async with httpx.AsyncClient() as client:
-#             response = await client.get(
-#                 f"{SCALEKIT_ENVIRONMENT_URL}/.well-known/oauth-authorization-server"
-#             )
-#             if response.status_code == 200:
-#                 return response.json()
-#             else:
-#                 raise HTTPException(status_code=500, detail="Failed to fetch authorization server metadata")
-#     except httpx.RequestError:
-#         raise HTTPException(status_code=500, detail="Failed to fetch authorization server metadata")
-
-# # Dynamic Client Registration endpoint
-# @app.post("/oauth/register")
-# async def dynamic_client_registration(request: Request):
-#     """
-#     Dynamic Client Registration endpoint
-#     Proxies registration requests to Scalekit authorization server
-#     """
-#     try:
-#         body = await request.body()
-#         async with httpx.AsyncClient() as client:
-#             response = await client.post(
-#                 f"{SCALEKIT_ENVIRONMENT_URL}/oauth/register",
-#                 content=body,
-#                 headers={
-#                     "Content-Type": request.headers.get("Content-Type", "application/json")
-#                 }
-#             )
-            
-#             if response.status_code in [200, 201]:
-#                 return response.json()
-#             else:
-#                 raise HTTPException(
-#                     status_code=response.status_code, 
-#                     detail=f"Client registration failed: {response.text}"
-#                 )
-#     except httpx.RequestError as e:
-#         raise HTTPException(status_code=503, detail=f"Unable to reach authorization server: {str(e)}")
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
-
-
 ################################################################################
 # MCP SERVER WITH AUTHENTICATION
 
