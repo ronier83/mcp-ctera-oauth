@@ -42,26 +42,28 @@ async def validate_token(credentials: HTTPAuthorizationCredentials = Depends(sec
         raise HTTPException(status_code=500, detail="Server configuration error: OAuth credentials not configured")
     
     try:
-        # Use ScaleKit SDK to introspect the token
-        token_info = await scalekit_client.validate_access_token(
+        # Use ScaleKit SDK to validate the token and get claims
+        token_info = scalekit_client.validate_access_token_and_get_claims(
           token,
           audience=RESOURCE_IDENTIFIER
         )
         
-        # Validate token is active
-        is_active = token_info.get("active", False)
-        
-        if not is_active:
-            raise HTTPException(status_code=401, detail="Token is not active")
-        
         # Check audience if present
         token_aud = token_info.get("aud")
         
-        if token_aud and token_aud != RESOURCE_IDENTIFIER:
-            raise HTTPException(
-                status_code=403, 
-                detail=f"Token not valid for this resource. Expected: {RESOURCE_IDENTIFIER}, Got: {token_aud}"
-            )
+        if token_aud:
+            # Handle both string and array formats for audience
+            if isinstance(token_aud, list):
+                if RESOURCE_IDENTIFIER not in token_aud:
+                    raise HTTPException(
+                        status_code=403, 
+                        detail=f"Token not valid for this resource. Expected: {RESOURCE_IDENTIFIER}, Got: {token_aud}"
+                    )
+            elif token_aud != RESOURCE_IDENTIFIER:
+                raise HTTPException(
+                    status_code=403, 
+                    detail=f"Token not valid for this resource. Expected: {RESOURCE_IDENTIFIER}, Got: {token_aud}"
+                )
         
         return token_info
         
