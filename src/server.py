@@ -49,7 +49,7 @@ app.add_middleware(
 ################################################################################
 # MCP WELL-KNOWN ENDPOINTS
 
-@app.get("/.well-known/oauth-protected-resource/web-search")
+@app.get("/.well-known/oauth-protected-resource")
 async def oauth_protected_resource_metadata():
     """
     OAuth 2.0 Protected Resource Metadata endpoint for MCP client discovery
@@ -59,59 +59,59 @@ async def oauth_protected_resource_metadata():
         "authorization_servers": [SCALEKIT_ENVIRONMENT_URL],
         "bearer_methods_supported": ["header"],
         "resource": RESOURCE_IDENTIFIER,
-        "resource_documentation": f"{RESOURCE_IDENTIFIER}/docs",
+        "resource_documentation": f"{RESOURCE_IDENTIFIER}docs",
         "scopes_supported": []
         # "scopes_supported": ["web-search:read", "web-search:write"]
     }
 
-# Proxy authorization server metadata from Scalekit
-@app.get("/.well-known/oauth-authorization-server")
-async def oauth_authorization_server_metadata():
-    """
-    Proxy the authorization server metadata from Scalekit
-    This allows clients to discover OAuth endpoints and capabilities
-    """
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{SCALEKIT_ENVIRONMENT_URL}/.well-known/oauth-authorization-server"
-            )
-            if response.status_code == 200:
-                return response.json()
-            else:
-                raise HTTPException(status_code=500, detail="Failed to fetch authorization server metadata")
-    except httpx.RequestError:
-        raise HTTPException(status_code=500, detail="Failed to fetch authorization server metadata")
+# # Proxy authorization server metadata from Scalekit
+# @app.get("/.well-known/oauth-authorization-server")
+# async def oauth_authorization_server_metadata():
+#     """
+#     Proxy the authorization server metadata from Scalekit
+#     This allows clients to discover OAuth endpoints and capabilities
+#     """
+#     try:
+#         async with httpx.AsyncClient() as client:
+#             response = await client.get(
+#                 f"{SCALEKIT_ENVIRONMENT_URL}/.well-known/oauth-authorization-server"
+#             )
+#             if response.status_code == 200:
+#                 return response.json()
+#             else:
+#                 raise HTTPException(status_code=500, detail="Failed to fetch authorization server metadata")
+#     except httpx.RequestError:
+#         raise HTTPException(status_code=500, detail="Failed to fetch authorization server metadata")
 
-# Dynamic Client Registration endpoint
-@app.post("/oauth/register")
-async def dynamic_client_registration(request: Request):
-    """
-    Dynamic Client Registration endpoint
-    Proxies registration requests to Scalekit authorization server
-    """
-    try:
-        body = await request.body()
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{SCALEKIT_ENVIRONMENT_URL}/oauth/register",
-                content=body,
-                headers={
-                    "Content-Type": request.headers.get("Content-Type", "application/json")
-                }
-            )
+# # Dynamic Client Registration endpoint
+# @app.post("/oauth/register")
+# async def dynamic_client_registration(request: Request):
+#     """
+#     Dynamic Client Registration endpoint
+#     Proxies registration requests to Scalekit authorization server
+#     """
+#     try:
+#         body = await request.body()
+#         async with httpx.AsyncClient() as client:
+#             response = await client.post(
+#                 f"{SCALEKIT_ENVIRONMENT_URL}/oauth/register",
+#                 content=body,
+#                 headers={
+#                     "Content-Type": request.headers.get("Content-Type", "application/json")
+#                 }
+#             )
             
-            if response.status_code in [200, 201]:
-                return response.json()
-            else:
-                raise HTTPException(
-                    status_code=response.status_code, 
-                    detail=f"Client registration failed: {response.text}"
-                )
-    except httpx.RequestError as e:
-        raise HTTPException(status_code=503, detail=f"Unable to reach authorization server: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
+#             if response.status_code in [200, 201]:
+#                 return response.json()
+#             else:
+#                 raise HTTPException(
+#                     status_code=response.status_code, 
+#                     detail=f"Client registration failed: {response.text}"
+#                 )
+#     except httpx.RequestError as e:
+#         raise HTTPException(status_code=503, detail=f"Unable to reach authorization server: {str(e)}")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
 
 ################################################################################
@@ -137,7 +137,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                     status_code=401,
                     content={"error": "unauthorized", "error_description": "Missing or invalid authorization header"},
                     headers={
-                        "WWW-Authenticate": f'Bearer realm="OAuth", resource_metadata="{RESOURCE_IDENTIFIER}/.well-known/oauth-protected-resource"'
+                        "WWW-Authenticate": f'Bearer realm="OAuth", resource_metadata="{RESOURCE_IDENTIFIER}.well-known/oauth-protected-resource"'
                     }
                 )
             
@@ -165,11 +165,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
             )
         
         return await call_next(request)
-# mcp_server.add_middleware(AuthMiddleware)
+
+mcp_server.add_middleware(AuthMiddleware)
 
 app.mount("/", mcp_server)
 
 # Run the server
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=PORT)
+    uvicorn.run(app, host="localhost", port=PORT)
