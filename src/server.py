@@ -173,4 +173,4 @@ app.mount("/", mcp_server)
 # Run the server
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="localhost", port=PORT)
+    uvicorn.run(app, host="localhost", port=PORT, log_level="debug")
