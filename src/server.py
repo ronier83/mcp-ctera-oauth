@@ -1,37 +1,16 @@
-from dotenv import load_dotenv
-import os
-from tavily_mcp import mcp as tavily_mcp_server
-
 import contextlib
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.security import HTTPAuthorizationCredentials
+import uvicorn
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
-import httpx
-from utils import validate_token
 
-################################################################################
-# CONFIGURATION 
+from .auth import AuthMiddleware
+from .config import settings
+from .tavily_mcp import mcp as tavily_mcp_server
 
-load_dotenv()
-
-# # OAuth Configuration - Replace with your actual Scalekit configuration
-SCALEKIT_ENVIRONMENT_URL = os.environ.get("SCALEKIT_ENVIRONMENT_URL", "")
-RESOURCE_IDENTIFIER = os.environ.get("RESOURCE_IDENTIFIER", "")
-
-
-if not SCALEKIT_ENVIRONMENT_URL:
-    raise Exception("SCALEKIT_ENVIRONMENT_URL environment variable not set")
-if not RESOURCE_IDENTIFIER:
-    raise Exception("RESOURCE_IDENTIFIER environment variable not set")
-
-PORT = int(os.environ.get("PORT", 10000))
-
-# Create a combined lifespan to manage both session managers
+# Create a combined lifespan to manage the MCP session manager
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with contextlib.AsyncExitStack() as stack:
-        await stack.enter_async_context(tavily_mcp_server.session_manager.run())
+    async with tavily_mcp_server.session_manager.run():
         yield
 
 # Mount the App
@@ -46,81 +25,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-################################################################################
-# MCP WELL-KNOWN ENDPOINTS
-
+# MCP well-known endpoint
 @app.get("/.well-known/oauth-protected-resource")
 async def oauth_protected_resource_metadata():
     """
-    OAuth 2.0 Protected Resource Metadata endpoint for MCP client discovery
-    Required by MCP specification for authorization server discovery
+    OAuth 2.0 Protected Resource Metadata endpoint for MCP client discovery.
+    Required by the MCP specification for authorization server discovery.
     """
     return {
-        "authorization_servers": [SCALEKIT_ENVIRONMENT_URL],
+        "authorization_servers": [settings.SCALEKIT_ENVIRONMENT_URL],
         "bearer_methods_supported": ["header"],
-        "resource": RESOURCE_IDENTIFIER,
-        "resource_documentation": f"{RESOURCE_IDENTIFIER}docs",
-        "scopes_supported": []
-        # "scopes_supported": ["web-search:read", "web-search:write"]
+        "resource": settings.RESOURCE_IDENTIFIER,
+        "resource_documentation": f"{settings.RESOURCE_IDENTIFIER}docs",
+        "scopes_supported": [],
     }
 
-################################################################################
-# MCP SERVER WITH AUTHENTICATION
-
+# Create and mount the MCP server with authentication
 mcp_server = tavily_mcp_server.streamable_http_app()
-
-class AuthMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        from fastapi.responses import JSONResponse
-        
-        # Skip authentication for metadata endpoints and OAuth endpoints
-        if (request.url.path.startswith("/.well-known/") or 
-            request.url.path.startswith("/oauth/")):
-            return await call_next(request)
-        
-        # Validate token for MCP endpoints
-        try:
-            auth_header = request.headers.get("Authorization")
-            if not auth_header or not auth_header.startswith("Bearer "):
-                # Return 401 with WWW-Authenticate header as required by MCP spec
-                return JSONResponse(
-                    status_code=401,
-                    content={"error": "unauthorized", "error_description": "Missing or invalid authorization header"},
-                    headers={
-                        "WWW-Authenticate": f'Bearer realm="OAuth", resource_metadata="{RESOURCE_IDENTIFIER}.well-known/oauth-protected-resource"'
-                    }
-                )
-            
-            token = auth_header.split(" ")[1]
-            credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
-            await validate_token(credentials)
-            
-        except HTTPException as e:
-            # Return 401/403 with proper WWW-Authenticate header
-            return JSONResponse(
-                status_code=e.status_code,
-                content={"error": "unauthorized" if e.status_code == 401 else "forbidden", "error_description": e.detail},
-                headers={
-                    "WWW-Authenticate": f'Bearer realm="OAuth", resource_metadata="{RESOURCE_IDENTIFIER}/.well-known/oauth-protected-resource"'
-                }
-            )
-        except Exception as e:
-            # Return 401 with WWW-Authenticate header for any other auth failure
-            return JSONResponse(
-                status_code=401,
-                content={"error": "unauthorized", "error_description": "Authentication failed"},
-                headers={
-                    "WWW-Authenticate": f'Bearer realm="OAuth", resource_metadata="{RESOURCE_IDENTIFIER}/.well-known/oauth-protected-resource"'
-                }
-            )
-        
-        return await call_next(request)
-
 mcp_server.add_middleware(AuthMiddleware)
-
 app.mount("/", mcp_server)
 
 # Run the server
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="localhost", port=PORT, log_level="debug")
+    uvicorn.run(app, host="localhost", port=settings.PORT, log_level="debug")
