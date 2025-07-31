@@ -60,7 +60,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 status_code=e.status_code,
                 content={"error": "unauthorized" if e.status_code == 401 else "forbidden", "error_description": e.detail},
                 headers={
-                    "WWW-Authenticate": f'Bearer realm="OAuth", resource_metadata="{settings.SCALEKIT_RESOURCE_NAME}.well-known/oauth-protected-resource"'
+                    "WWW-Authenticate": f'Bearer realm="OAuth", resource_metadata="{settings.SCALEKIT_RESOURCE_METADATA_URL}"'
                 }
             )
 
