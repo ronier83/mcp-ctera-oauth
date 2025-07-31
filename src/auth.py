@@ -20,8 +20,8 @@ security = HTTPBearer()
 # Initialize ScaleKit client
 scalekit_client = ScalekitClient(
     settings.SCALEKIT_ENVIRONMENT_URL,
-    settings.CLIENT_ID,
-    settings.CLIENT_SECRET
+    settings.SCALEKIT_CLIENT_ID,
+    settings.SCALEKIT_CLIENT_SECRET
 )
 
 # Token validation function
