@@ -1,3 +1,4 @@
+
 import contextlib
 import uvicorn
 from fastapi import FastAPI
@@ -13,7 +14,6 @@ async def lifespan(app: FastAPI):
     async with tavily_mcp_server.session_manager.run():
         yield
 
-# Mount the App
 app = FastAPI(lifespan=lifespan)
 
 # Add CORS middleware
@@ -33,10 +33,10 @@ async def oauth_protected_resource_metadata():
     Required by the MCP specification for authorization server discovery.
     """
     return {
-        "authorization_servers": [f"{settings.SCALEKIT_ENVIRONMENT_URL}/resources/{settings.RESOURCE_IDENTIFIER}"],
+        "authorization_servers": [settings.SCALEKIT_AUTHORIZATION_SERVERS],
         "bearer_methods_supported": ["header"],
-        "resource": f"{settings.SCALEKIT_RESOURCE_IDENTIFIER}",
-        "resource_documentation": f"{settings.SCALEKIT_RESOURCE_DOCS_URL}/docs",
+        "resource": settings.SCALEKIT_RESOURCE_NAME,
+        "resource_documentation": settings.SCALEKIT_RESOURCE_DOCS_URL,
         "scopes_supported": [],
     }
 
@@ -45,6 +45,9 @@ mcp_server = tavily_mcp_server.streamable_http_app()
 mcp_server.add_middleware(AuthMiddleware)
 app.mount("/", mcp_server)
 
-# Run the server
-if __name__ == "__main__":
+def main():
+    """Main entry point for the MCP server."""
     uvicorn.run(app, host="localhost", port=settings.PORT, log_level="debug")
+
+if __name__ == "__main__":
+    main()

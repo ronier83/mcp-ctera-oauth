@@ -33,7 +33,7 @@ async def validate_token(credentials: HTTPAuthorizationCredentials = Depends(sec
     try:
         token_info = scalekit_client.validate_access_token_and_get_claims(
             token,
-            audience=settings.RESOURCE_IDENTIFIER
+            audience=settings.SCALEKIT_AUDIENCE_NAME
         )
         return token_info
     except Exception as e:
@@ -60,7 +60,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 status_code=e.status_code,
                 content={"error": "unauthorized" if e.status_code == 401 else "forbidden", "error_description": e.detail},
                 headers={
-                    "WWW-Authenticate": f'Bearer realm="OAuth", resource_metadata="{settings.RESOURCE_IDENTIFIER}/.well-known/oauth-protected-resource"'
+                    "WWW-Authenticate": f'Bearer realm="OAuth", resource_metadata="{settings.SCALEKIT_RESOURCE_NAME}.well-known/oauth-protected-resource"'
                 }
             )
 
