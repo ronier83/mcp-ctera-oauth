@@ -79,7 +79,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 scalekit_client.validate_access_token_and_get_claims(
                     token,
                     audience=settings.SCALEKIT_AUDIENCE_NAME,
-                    options=validate_options
+                    options=validate_options # is this doing anything?
                 )
                 
             except Exception as e:
