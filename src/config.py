@@ -6,7 +6,8 @@ load_dotenv()
 class Settings:
     # ScaleKit Configuration
     SCALEKIT_ENVIRONMENT_URL: str = os.environ.get("SCALEKIT_ENVIRONMENT_URL", "")
-    RESOURCE_IDENTIFIER: str = os.environ.get("RESOURCE_IDENTIFIER", "")
+    SCALEKIT_RESOURCE_IDENTIFIER: str = os.environ.get("RESOURCE_IDENTIFIER", "")
+    SCALEKIT_RESOURCE_DOCS_URL: str = os.environ.get("SCALEKIT_RESOURCE_DOCS_URL", "")
     CLIENT_ID: str = os.environ.get("CLIENT_ID", "")
     CLIENT_SECRET: str = os.environ.get("CLIENT_SECRET", "")
 
@@ -17,6 +18,10 @@ class Settings:
     PORT: int = int(os.environ.get("PORT", 10000))
 
     def __post_init__(self):
+        if not self.SCALEKIT_RESOURCE_IDENTIFIER:
+            raise ValueError("RESOURCE_IDENTIFIER environment variable not set")
+        if not self.SCALEKIT_RESOURCE_DOCS_URL:
+            raise ValueError("SCALEKIT_RESOURCE_DOCS_URL environment variable not set")
         if not self.SCALEKIT_ENVIRONMENT_URL:
             raise ValueError("SCALEKIT_ENVIRONMENT_URL environment variable not set")
         if not self.RESOURCE_IDENTIFIER:

@@ -33,10 +33,10 @@ async def oauth_protected_resource_metadata():
     Required by the MCP specification for authorization server discovery.
     """
     return {
-        "authorization_servers": [settings.SCALEKIT_ENVIRONMENT_URL],
+        "authorization_servers": [f"{settings.SCALEKIT_ENVIRONMENT_URL}/resources/{settings.RESOURCE_IDENTIFIER}"],
         "bearer_methods_supported": ["header"],
-        "resource": settings.RESOURCE_IDENTIFIER,
-        "resource_documentation": f"{settings.RESOURCE_IDENTIFIER}docs",
+        "resource": f"{settings.SCALEKIT_RESOURCE_IDENTIFIER}",
+        "resource_documentation": f"{settings.SCALEKIT_RESOURCE_DOCS_URL}/docs",
         "scopes_supported": [],
     }
 
