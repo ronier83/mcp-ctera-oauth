@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from scalekit import ScalekitClient
 from scalekit.common.scalekit import TokenValidationOptions
 from starlette.middleware.base import BaseHTTPMiddleware
-import base64
+import jwt
 from typing import List
 
 from .config import settings
@@ -30,14 +30,11 @@ scalekit_client = ScalekitClient(
 
 def extract_scopes(token: str) -> List[str]:
     """
-    Extract scopes from a JWT token.
+    Extract scopes from a JWT token using PyJWT without signature verification.
     """
     try:
-        token_parts = token.split('.')
-        if len(token_parts) != 3:
-            raise ValueError("Invalid JWT format")
-
-        payload = json.loads(base64.b64decode(token_parts[1] + '=' * (-len(token_parts[1]) % 4)).decode('utf-8'))
+        # Decode JWT payload without signature verification
+        payload = jwt.decode(token, options={"verify_signature": False})
         return payload.get('scopes', [])
     except Exception as e:
         logger.error(f"Failed to extract scopes from token: {e}")
@@ -55,7 +52,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 raise HTTPException(status_code=401, detail="Missing or invalid authorization header")
 
             token = auth_header.split(" ")[1]
-            logger.info(f"Received token: {token}")
+            # logger.info(f"Received token: {token}")
 
             request_body = await request.body()
             
