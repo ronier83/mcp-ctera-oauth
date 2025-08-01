@@ -4,6 +4,7 @@ from fastapi import HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
 from scalekit import ScalekitClient
+from scalekit.common.scalekit import TokenValidationOptions
 from starlette.middleware.base import BaseHTTPMiddleware
 import base64
 from typing import List
@@ -57,7 +58,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
             logger.info(f"Received token: {token}")
 
             request_body = await request.body()
-            validate_options = {}
             
             # Parse JSON from bytes
             try:
@@ -65,22 +65,25 @@ class AuthMiddleware(BaseHTTPMiddleware):
             except (json.JSONDecodeError, UnicodeDecodeError):
                 request_data = {}
             
+            validation_options = TokenValidationOptions(
+              issuer=settings.SCALEKIT_ENVIRONMENT_URL,
+              audience=[settings.SCALEKIT_AUDIENCE_NAME],
+            )
+            
             is_tool_call = request_data.get("method") == "tools/call"
+            
             if is_tool_call:
-                required_scopes = ["mcp:tools:search:error"]
-
-                # verify scopes manually on MCP side
-                if not all(scope in extract_scopes(token) for scope in required_scopes):
-                    raise HTTPException(status_code=403, detail="Your account does not have the required scopes to call this tool.")
+                required_scopes = ["mcp:tools:search:error"] # get required scope for your tool
                 
-                validate_options = {"required_scopes": required_scopes}
+                validation_options.required_scopes = required_scopes
+                
+                # # verify scopes manually on MCP side
+                # if not all(scope in extract_scopes(token) for scope in required_scopes):
+                #     raise HTTPException(status_code=403, detail="Your account does not have the required scopes")
+                  
             
             try:
-                scalekit_client.validate_access_token_and_get_claims(
-                    token,
-                    audience=settings.SCALEKIT_AUDIENCE_NAME,
-                    options=validate_options # is this doing anything?
-                )
+                scalekit_client.validate_access_token(token, options=validation_options)
                 
             except Exception as e:
                 logger.error(f"Token validation failed: {e}")

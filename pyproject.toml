@@ -11,7 +11,7 @@ dependencies = [
     "tavily-python>=0.7.7",
     "httpx>=0.25.0",
     "PyJWT>=2.8.0",
-    "scalekit-sdk-python>=2.2.0",
+    "scalekit-sdk-python>=2.3.0",
 ]
 
 [project.scripts]
