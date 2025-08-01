@@ -72,6 +72,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             
             is_tool_call = request_data.get("method") == "tools/call"
             
+            required_scopes = []
             if is_tool_call:
                 required_scopes = ["mcp:tools:search:error"] # get required scope for your tool
                 
@@ -83,7 +84,16 @@ class AuthMiddleware(BaseHTTPMiddleware):
                   
             
             try:
+                # debug
+                scope_in_token = extract_scopes(token)
+                logger.info("Validating token...")
+                logger.info(f"Token issuer: {validation_options.issuer}")
+                logger.info(f"Token audience: {validation_options.audience}")
+                logger.info(f"Token scopes: {scope_in_token}")
+                logger.info(f"Required scopes: {required_scopes}")
+                logger.info(f"Should pass: {all(scope in scope_in_token for scope in required_scopes)}")
                 scalekit_client.validate_access_token(token, options=validation_options)
+                logger.info("Token validation passed")
                 
             except Exception as e:
                 logger.error(f"Token validation failed: {e}")

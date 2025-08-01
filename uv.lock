@@ -462,7 +462,7 @@ requires-dist = [
     { name = "mcp", extras = ["cli"], specifier = ">=1.9.3" },
     { name = "pyjwt", specifier = ">=2.8.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "scalekit-sdk-python", specifier = ">=2.3.0" },
+    { name = "scalekit-sdk-python", specifier = ">=2.3.1" },
     { name = "tavily-python", specifier = ">=0.7.7" },
 ]
 
@@ -890,7 +890,7 @@ wheels = [
 
 [[package]]
 name = "scalekit-sdk-python"
-version = "2.3.0"
+version = "2.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cffi" },
@@ -908,9 +908,9 @@ dependencies = [
     { name = "requests" },
     { name = "setuptools" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/67/17/7d5a5b5514ac36f4007594a9055bc19fbf1e207fb717edaf7c29334ed612/scalekit_sdk_python-2.3.0.tar.gz", hash = "sha256:40f5156e1f4e61e40c1843e171185f6dd9646989377cebfac46ad30431f39ba5", size = 271570 }
+sdist = { url = "https://files.pythonhosted.org/packages/13/0b/b1fe774a80c37f5c4866d9cff07e26719688f555d4b738eb86979e4a4dee/scalekit_sdk_python-2.3.1.tar.gz", hash = "sha256:d4af4ce1056fde5c1ed27d1462d4ac55d293f4bfa236e0ce13ff1dc3c8ded2ff", size = 271605 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1c/11/29067e653ed278ee8d2ec40e4f0d8cbb402b695ac13890208e6b28fd07e8/scalekit_sdk_python-2.3.0-py3-none-any.whl", hash = "sha256:1275141fc0e37bb07e33b261835a22bed9eaf04cc3a5bed48f188ea195e9d916", size = 307026 },
+    { url = "https://files.pythonhosted.org/packages/4e/70/5d49e396f448f4b30968f57b75aa295824b1bcd535b057480fcb2522b926/scalekit_sdk_python-2.3.1-py3-none-any.whl", hash = "sha256:91bec859ebd8ac2ff7763d85286151915e1a279e2c0f8044e57c09778c5e74bf", size = 307029 },
 ]
 
 [[package]]
