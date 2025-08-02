@@ -28,16 +28,16 @@ scalekit_client = ScalekitClient(
     settings.SCALEKIT_CLIENT_SECRET
 )
 
-def extract_scopes(token: str) -> List[str]:
+def extract_from_token(token: str, key: str) -> Any:
     """
-    Extract scopes from a JWT token using PyJWT without signature verification.
+    Extract data from a JWT token using PyJWT without signature verification.
     """
     try:
         # Decode JWT payload without signature verification
         payload = jwt.decode(token, options={"verify_signature": False})
-        return payload.get('scopes', [])
+        return payload.get(key, [])
     except Exception as e:
-        logger.error(f"Failed to extract scopes from token: {e}")
+        logger.error(f"Failed to extract {key} from token: {e}")
         raise HTTPException(status_code=401, detail="Invalid JWT payload")
 
 # Authentication middleware
