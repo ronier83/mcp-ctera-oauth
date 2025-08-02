@@ -28,7 +28,7 @@ scalekit_client = ScalekitClient(
     settings.SCALEKIT_CLIENT_SECRET
 )
 
-def extract_from_token(token: str, key: str) -> Any:
+def extract_from_token(token: str, key: str) -> str:
     """
     Extract data from a JWT token using PyJWT without signature verification.
     """
@@ -52,7 +52,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 raise HTTPException(status_code=401, detail="Missing or invalid authorization header")
 
             token = auth_header.split(" ")[1]
-            # logger.info(f"Received token: {token}")
 
             request_body = await request.body()
             
@@ -76,24 +75,34 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 validation_options.required_scopes = required_scopes
                 
                 # # verify scopes manually on MCP side
-                # if not all(scope in extract_scopes(token) for scope in required_scopes):
+                # if not all(scope in extract_from_token(token, "scopes") for scope in required_scopes):
                 #     raise HTTPException(status_code=403, detail="Your account does not have the required scopes")
                   
             
             try:
-                # debug
-                scope_in_token = extract_scopes(token)
+                # debug start
+                scope_in_token = extract_from_token(token, "scopes")
                 logger.info("Validating token...")
-                logger.info(f"Token issuer: {validation_options.issuer}")
-                logger.info(f"Token audience: {validation_options.audience}")
+                logger.info(f"Required issuer: {validation_options.issuer}")
+                logger.info(f"Token issuer: {extract_from_token(token, 'iss')}")
+                logger.info(f'Should pass issuer: {"✅" if validation_options.issuer == extract_from_token(token, "iss") else "❌"}')
+                
+                logger.info(f"Required audience: {validation_options.audience}")
+                logger.info(f"Token audience: {extract_from_token(token, 'aud')}")
+                logger.info(f'Should pass audience: {"✅" if validation_options.audience == extract_from_token(token, "aud") else "❌"}')
+                
                 logger.info(f"Token scopes: {scope_in_token}")
                 logger.info(f"Required scopes: {required_scopes}")
-                logger.info(f"Should pass: {all(scope in scope_in_token for scope in required_scopes)}")
+                logger.info(f'Should pass scopes: {"✅" if all(scope in scope_in_token for scope in required_scopes) else "❌"}')
+                # debug end
+                
                 scalekit_client.validate_access_token(token, options=validation_options)
-                logger.info("Token validation passed")
+                
+                # debug
+                logger.info("✅ Token validation passed")
                 
             except Exception as e:
-                logger.error(f"Token validation failed: {e}")
+                logger.error(f"❌ Token validation failed: {e}")
                 raise HTTPException(status_code=401, detail="Token validation failed")
 
         except HTTPException as e:
