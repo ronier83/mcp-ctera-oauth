@@ -70,7 +70,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             
             required_scopes = []
             if is_tool_call:
-                required_scopes = ["mcp:tools:search:error"] # get required scope for your tool
+                required_scopes = ["mcp:tools:search:read"] # get required scope for your tool
                 
                 validation_options.required_scopes = required_scopes
                 
@@ -81,7 +81,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
             
             try:
                 # debug start
-                scope_in_token = extract_from_token(token, "scopes")
                 logger.info("Validating token...")
                 logger.info(f"Required issuer: {validation_options.issuer}")
                 logger.info(f"Token issuer: {extract_from_token(token, 'iss')}")
@@ -91,8 +90,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 logger.info(f"Token audience: {extract_from_token(token, 'aud')}")
                 logger.info(f'Should pass audience: {"✅" if validation_options.audience == extract_from_token(token, "aud") else "❌"}')
                 
-                logger.info(f"Token scopes: {scope_in_token}")
+                scope_in_token = extract_from_token(token, 'scopes')
                 logger.info(f"Required scopes: {required_scopes}")
+                logger.info(f"Token scopes: {scope_in_token}")
                 logger.info(f'Should pass scopes: {"✅" if all(scope in scope_in_token for scope in required_scopes) else "❌"}')
                 # debug end
                 

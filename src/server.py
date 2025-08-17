@@ -37,12 +37,14 @@ async def oauth_protected_resource_metadata():
         "bearer_methods_supported": ["header"],
         "resource": settings.SCALEKIT_RESOURCE_NAME,
         "resource_documentation": settings.SCALEKIT_RESOURCE_DOCS_URL,
-        "scopes_supported": [],
+        "scopes_supported": [
+          "mcp:tools:search:read"
+        ],
     }
 
 # Create and mount the MCP server with authentication
 mcp_server = tavily_mcp_server.streamable_http_app()
-mcp_server.add_middleware(AuthMiddleware)
+app.add_middleware(AuthMiddleware)
 app.mount("/", mcp_server)
 
 def main():
