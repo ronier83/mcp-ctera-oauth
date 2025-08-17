@@ -26,7 +26,7 @@ app.add_middleware(
 )
 
 # MCP well-known endpoint
-@app.get("/.well-known/oauth-protected-resource")
+@app.get("/.well-known/oauth-protected-resource/mcp")
 async def oauth_protected_resource_metadata():
     """
     OAuth 2.0 Protected Resource Metadata endpoint for MCP client discovery.
