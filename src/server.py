@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .auth import AuthMiddleware
 from .config import settings
 from .tavily_mcp import mcp as tavily_mcp_server
+import json
 
 # Create a combined lifespan to manage the MCP session manager
 @contextlib.asynccontextmanager
@@ -32,15 +33,9 @@ async def oauth_protected_resource_metadata():
     OAuth 2.0 Protected Resource Metadata endpoint for MCP client discovery.
     Required by the MCP specification for authorization server discovery.
     """
-    return {
-        "authorization_servers": [settings.SCALEKIT_AUTHORIZATION_SERVERS],
-        "bearer_methods_supported": ["header"],
-        "resource": settings.SCALEKIT_RESOURCE_NAME,
-        "resource_documentation": settings.SCALEKIT_RESOURCE_DOCS_URL,
-        "scopes_supported": [
-          "mcp:tools:search:read"
-        ],
-    }
+
+    response = json.loads(settings.METADATA_JSON_RESPONSE)
+    return response
 
 # Create and mount the MCP server with authentication
 mcp_server = tavily_mcp_server.streamable_http_app()
