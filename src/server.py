@@ -55,10 +55,38 @@ async def oauth_authorization_server_metadata():
         "client_id": settings.SCALEKIT_CLIENT_ID,
     }
 
+# Add OAuth metadata endpoints under /mcp path for MCP Inspector compatibility  
+@app.get("/mcp/.well-known/oauth-protected-resource")
+async def mcp_oauth_protected_resource_metadata():
+    """
+    OAuth 2.0 Protected Resource Metadata endpoint under /mcp path.
+    MCP Inspector expects this to be relative to the MCP endpoint.
+    """
+    response = json.loads(settings.METADATA_JSON_RESPONSE)
+    return response
+
+@app.get("/mcp/.well-known/oauth-authorization-server")
+async def mcp_oauth_authorization_server_metadata():
+    """
+    OAuth Authorization Server Metadata endpoint under /mcp path.
+    MCP Inspector expects this to be relative to the MCP endpoint.
+    """
+    return {
+        "issuer": settings.SCALEKIT_ENVIRONMENT_URL,
+        "authorization_endpoint": f"{settings.SCALEKIT_ENVIRONMENT_URL}/oauth/authorize",
+        "token_endpoint": f"{settings.SCALEKIT_ENVIRONMENT_URL}/oauth/token",
+        "jwks_uri": f"{settings.SCALEKIT_ENVIRONMENT_URL}/keys",
+        "scopes_supported": ["ctera:read", "ctera:admin", "user:read"],
+        "response_types_supported": ["code"],
+        "grant_types_supported": ["authorization_code"],
+        "code_challenge_methods_supported": ["S256"],
+        "client_id": settings.SCALEKIT_CLIENT_ID,
+    }
+
 # Create and mount the MCP server with authentication
 mcp_server = ctera_mcp_server.streamable_http_app()
 app.add_middleware(AuthMiddleware)
-app.mount("/", mcp_server)
+app.mount("/mcp", mcp_server)
 
 def main():
     """Main entry point for the MCP server."""

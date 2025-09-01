@@ -29,7 +29,9 @@ scalekit_client = ScalekitClient(
 # Authentication middleware
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if request.url.path.startswith("/.well-known/"):
+        # Allow OAuth metadata endpoints at root and under /mcp/ path
+        if (request.url.path.startswith("/.well-known/") or 
+            request.url.path.startswith("/mcp/.well-known/")):
             return await call_next(request)
 
         try:
