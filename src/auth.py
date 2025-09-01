@@ -7,7 +7,7 @@ from scalekit import ScalekitClient
 from scalekit.common.scalekit import TokenValidationOptions
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from config import settings
+from .config import settings
 
 # Configure logging
 logging.basicConfig(
@@ -29,10 +29,7 @@ scalekit_client = ScalekitClient(
 # Authentication middleware
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # Allow discovery endpoints, registration, and root endpoint without authentication
-        if (request.url.path.startswith("/.well-known/") or 
-            request.url.path == "/register" or 
-            request.url.path == "/"):
+        if request.url.path.startswith("/.well-known/"):
             return await call_next(request)
 
         try:
