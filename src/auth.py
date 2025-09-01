@@ -7,7 +7,7 @@ from scalekit import ScalekitClient
 from scalekit.common.scalekit import TokenValidationOptions
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from .config import settings
+from config import settings
 
 # Configure logging
 logging.basicConfig(
@@ -56,7 +56,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
             
             required_scopes = []
             if is_tool_call:
-                required_scopes = ["search:read"] # get required scope for your tool
+                # CTERA Portal scopes - adjust based on the specific tool being called
+                required_scopes = ["ctera:read", "ctera:admin"] # ctera:read for basic ops, ctera:admin for tenant browsing
                 validation_options.required_scopes = required_scopes  
             
             try:

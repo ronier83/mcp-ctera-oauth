@@ -4,15 +4,15 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .auth import AuthMiddleware
-from .config import settings
-from .tavily_mcp import mcp as tavily_mcp_server
+from auth import AuthMiddleware
+from config import settings
+from ctera_mcp import mcp as ctera_mcp_server  # CTERA Portal tools with OAuth protection
 import json
 
 # Create a combined lifespan to manage the MCP session manager
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with tavily_mcp_server.session_manager.run():
+    async with ctera_mcp_server.session_manager.run():
         yield
 
 app = FastAPI(lifespan=lifespan)
@@ -33,12 +33,11 @@ async def oauth_protected_resource_metadata():
     OAuth 2.0 Protected Resource Metadata endpoint for MCP client discovery.
     Required by the MCP specification for authorization server discovery.
     """
-
     response = json.loads(settings.METADATA_JSON_RESPONSE)
     return response
 
 # Create and mount the MCP server with authentication
-mcp_server = tavily_mcp_server.streamable_http_app()
+mcp_server = ctera_mcp_server.streamable_http_app()
 app.add_middleware(AuthMiddleware)
 app.mount("/", mcp_server)
 

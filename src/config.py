@@ -12,8 +12,14 @@ class Settings:
     SCALEKIT_AUDIENCE_NAME: str = os.environ.get("SCALEKIT_AUDIENCE_NAME", "")
     METADATA_JSON_RESPONSE: str = os.environ.get("METADATA_JSON_RESPONSE", "")
 
-    # Tavily API Key
-    TAVILY_API_KEY: str = os.environ.get("TAVILY_API_KEY", "")
+    # CTERA Portal Configuration
+    # These environment variables are used by the CTERA SDK
+    CTERA_SCOPE: str = os.environ.get("ctera.mcp.core.settings.scope", "")
+    CTERA_HOST: str = os.environ.get("ctera.mcp.core.settings.host", "")
+    CTERA_USER: str = os.environ.get("ctera.mcp.core.settings.user", "")
+    CTERA_PASSWORD: str = os.environ.get("ctera.mcp.core.settings.password", "")
+    CTERA_PORT: int = int(os.environ.get("ctera.mcp.core.settings.port", 443))
+    CTERA_SSL: str = os.environ.get("ctera.mcp.core.settings.ssl", "true")
 
     # Server Port
     PORT: int = int(os.environ.get("PORT", 10000))
@@ -29,7 +35,16 @@ class Settings:
             raise ValueError("SCALEKIT_RESOURCE_METADATA_URL environment variable not set")
         if not self.SCALEKIT_AUDIENCE_NAME:
             raise ValueError("SCALEKIT_AUDIENCE_NAME environment variable not set")
-        if not self.TAVILY_API_KEY:
-            raise ValueError("TAVILY_API_KEY environment variable not set")
+        # Validate CTERA Portal configuration
+        if not self.CTERA_SCOPE:
+            raise ValueError("ctera.mcp.core.settings.scope environment variable not set")
+        if not self.CTERA_HOST:
+            raise ValueError("ctera.mcp.core.settings.host environment variable not set")
+        if not self.CTERA_USER:
+            raise ValueError("ctera.mcp.core.settings.user environment variable not set")
+        if not self.CTERA_PASSWORD:
+            raise ValueError("ctera.mcp.core.settings.password environment variable not set")
+        if self.CTERA_SCOPE not in ['admin', 'user']:
+            raise ValueError("ctera.mcp.core.settings.scope must be 'admin' or 'user'")
 
 settings = Settings()
